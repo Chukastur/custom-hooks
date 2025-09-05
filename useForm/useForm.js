@@ -1,34 +1,60 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from 'react';
 
-export const useForm = ( initialForm = {} ) => {                        
+export const useForm = ( initialForm = {}, formValidations = {} ) => {
+  
+    const [ formState, setFormState ] = useState( initialForm );
 
-    const initialState = {                                              
-        username: '',
-        email: '',
-        password: '',
-        ...initialForm                                                
-    };
+    const [ formValidation, setFormValidation ] = useState ({}); // Iniciamos con un objeto vacio para las validaciones
 
-    const [formState, setFormState] = useState ( initialForm );     
+    useEffect(() => {
+        createValidators ();
+    }, [ formState ]); // Cada vez que formState cambia, llama a la función createValidators
 
-    const onInputChange = ( { target } ) => {                           
-        const { name, value } = target ;
+    useEffect(() => {
+        setFormState ( initialForm );   
+    }, [ initialForm ]); // Para que cambie de nota cuando cambia la nota activa (al pinchar en el menu)
+    
+    
+    const isFormValid = useMemo ( () => {
+        for ( const formValue of Object.keys ( formValidation ) ) {
+            if ( formValidation [ formValue ] !== null ) return false;
+        }
+        return true;
+    }, [ formValidation ])
 
-        setFormState ({
+    const onInputChange = ({ target }) => {
+        const { name, value } = target;
+        setFormState({
             ...formState,
             [ name ]: value
-            });     
+        });
     };
 
     const onResetForm = () => {
-       setFormState ( initialForm ) 
+        setFormState( initialForm );
+    };
+
+    const createValidators = () =>{
+
+        const formCheckedValues = {}; 
+
+        for ( const formField of Object.keys ( formValidations ) ) {
+            const [ fn, errorMessage ] = formValidations [ formField ]; // Obtenemos la función y el mensaje del error
+            
+            formCheckedValues [`${ formField }Valid`] = fn ( formState [formField] ) ? null : errorMessage
+        
+        };
+
+        setFormValidation ( formCheckedValues );
     };
     
-    return{                                                           
+
+    return {
         ...formState,
         formState,
         onInputChange,
-        onResetForm    
+        onResetForm,
+        ...formValidation,
+        isFormValid
     };
-
 };
